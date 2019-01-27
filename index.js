@@ -14,7 +14,7 @@ function swap(arr, idx1, idx2){
  * // Logs [[3,0,2,1],[[5,-4,-3,1],[0.4,5.6,2.2,-3.4],[0.8,0.9285714285714287,-2.642857142857143,7.357142857142858],[-0.2,-0.5,-0.9459459459459459,9.45945945945946]]]
  * let test1 = [[2,4,1,-3],[-1,-2,2,4],[4,2,-3,5],[5,-4,-3,1]];
  * const pi = LUPDecomposition(test1);
- * console.log([pi, test1)];
+ * console.log([pi, test1]);
  */
 function LUPDecomposition(A){
     const n = A.length;
@@ -41,19 +41,7 @@ function LUPDecomposition(A){
     return pi;
 }
 
-
-/**
- * Solves Ax=b for the unknown vector x.
- * @param {Number[][]} A An nxn matrix.
- * @param {Number[]} b A vector of length n.
- * 
- * @example
- * // returns something close to [21, 5, -1]
- * LUPSolve([[-2,8,-5],[3,-11,7],[9,-34,21]], [3,1,-2])
- */
-function LUPSolve(A, b){
-    // modifies A in-place to contain matrices L,U
-    const pi = LUPDecomposition(A);
+function vectorSolverHelper(A, pi, b){
     const n = A.length;
     // Solve Ly=Pb for the unknown y=UX using forward substitution
     let y = Array(n).fill();
@@ -65,8 +53,60 @@ function LUPSolve(A, b){
     // Solve Ux=y for the unknown x using back substitution
     let x = Array(n).fill();
     for(let i=n-1; i>=0; i--){
-        const sum = x.slice(i+1).reduce((a, x_j, j) => a + (x_j * A[i][j+i+1]), 0);
+        const sum = x.slice(i+1)
+            .reduce((a, x_j, j) => a + (x_j * A[i][j+i+1]), 0);
         x[i] = (y[i] - sum) / A[i][i];
     }
     return x;
+}
+
+/**
+ * Solves Ax=b for the unknown vector x.
+ * @param {Number[][]} A An nxn matrix.
+ * @param {Number[]} b A vector of length n.
+ * 
+ * @example
+ * // returns something close to [21, 5, -1]
+ * LUPSolveVector([[-2,8,-5],[3,-11,7],[9,-34,21]], [3,1,-2])
+ */
+function LUPSolveVector(A, b){
+    // modifies A in-place to contain matrices L,U
+    const pi = LUPDecomposition(A);
+    return vectorSolverHelper(A, pi, b);
+}
+
+/**
+ * Solves Ax=b for the unknown matrix x.
+ * @param {Number[][]} A An nxn matrix.
+ * @param {Number[]} b An nxm matrix.
+ */
+function LUPSolveMatrix(A, b){
+    // modifies A in-place to contain matrices L,U
+    const pi = LUPDecomposition(A);
+    const n = A.length;
+    const m = b[0].length;
+    let inv = Array(n).fill().map(() => Array(m).fill());
+    for(let j=0; j<m; j++){
+        const b_col = b.map(r => r[j]);
+        const col = vectorSolverHelper(A, pi, b_col);
+        for(let i=0; i<n; i++){
+            inv[i][j] = col[i];
+        }
+    }
+    return inv;
+}
+
+/**
+ * Computes the matrix inverse of `A`.
+ * @param {Number[][]} A An nxn matrix.
+ * 
+ * @example
+ * // the result should produce the identity when multiplied with the input
+ * inverse([[7,2,1],[0,3,-1],[-3,4,2]])
+ */
+function matrixInverse(A){
+    const n = A.length;
+    let b = Array(n).fill().map(() => Array(n).fill(0))
+    for(let i=0; i<n; i++){ b[i][i] = 1; }
+    return LUPSolveMatrix(A, b);
 }
