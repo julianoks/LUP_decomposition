@@ -1,36 +1,40 @@
 function swap(arr, idx1, idx2){
     const temp = arr[idx1];
     arr[idx1] = arr[idx2];
-    arr[idx2] = temp
+    arr[idx2] = temp;
 }
 
 /**
  * Performs an LUP decomposition on A, in-place.
  * After execution `A` will contain the matrices L,U.
  * @param {Number[][]} A An nxn matrix. Note that `A` is updated in-place.
- * @returns {Number[]} The permutation.
+ * @returns {[Number, Number[]]} `[pi, sign]` The permutation `pi` represented as an array, and `sign`, the parity of the permutation
  * 
  * @example
- * // Logs [[3,0,2,1],[[5,-4,-3,1],[0.4,5.6,2.2,-3.4],[0.8,0.9285714285714287,-2.642857142857143,7.357142857142858],[-0.2,-0.5,-0.9459459459459459,9.45945945945946]]]
+ * // Logs [1, [3,0,2,1],[[5,-4,-3,1],[0.4,5.6,2.2,-3.4],[0.8,0.9285714285714287,-2.642857142857143,7.357142857142858],[-0.2,-0.5,-0.9459459459459459,9.45945945945946]]]
  * let test1 = [[2,4,1,-3],[-1,-2,2,4],[4,2,-3,5],[5,-4,-3,1]];
- * const pi = LUPDecomposition(test1);
- * console.log([pi, test1]);
+ * const [pi, sign] = LUPDecomposition(test1);
+ * console.log([sign, pi, test1]);
  */
 function LUPDecomposition(A){
     const n = A.length;
     const pi = Array(n).fill().map((_,i) => i);
+    let sign = 1;
     for(let i=0; i<n; i++){
-        let p = 0;
-        let i_pivot = i;
+        let pivot_val = 0;
+        let pivot_idx = i;
         for(let j=i; j<n; j++){
-            if(Math.abs(A[j][i]) > p){
-                p = Math.abs(A[j][i]);
-                i_pivot = j;
+            if(Math.abs(A[j][i]) > pivot_val){
+                pivot_val = Math.abs(A[j][i]);
+                pivot_idx = j;
             }
         }
-        if(p === 0){ throw("Error: singular matrix"); }
-        swap(pi, i, i_pivot);
-        swap(A, i, i_pivot);
+        if(pivot_val === 0){ throw("Error: singular matrix"); }
+        swap(A, i, pivot_idx);
+        if(i != pivot_idx){
+            swap(pi, i, pivot_idx);
+            sign *= -1;
+        }
         for(let j=i+1; j<n; j++){
             A[j][i] = A[j][i] / A[i][i];
             for(let k=i+1; k<n; k++){
@@ -38,7 +42,7 @@ function LUPDecomposition(A){
             }
         }
     }
-    return pi;
+    return [pi, sign];
 }
 
 function vectorSolverHelper(A, pi, b){
@@ -71,7 +75,7 @@ function vectorSolverHelper(A, pi, b){
  */
 function LUPSolveVector(A, b){
     // modifies A in-place to contain matrices L,U
-    const pi = LUPDecomposition(A);
+    const pi = LUPDecomposition(A)[0];
     return vectorSolverHelper(A, pi, b);
 }
 
@@ -82,7 +86,7 @@ function LUPSolveVector(A, b){
  */
 function LUPSolveMatrix(A, b){
     // modifies A in-place to contain matrices L,U
-    const pi = LUPDecomposition(A);
+    const pi = LUPDecomposition(A)[0];
     const n = A.length;
     const m = b[0].length;
     let inv = Array(n).fill().map(() => Array(m).fill());
@@ -102,11 +106,31 @@ function LUPSolveMatrix(A, b){
  * 
  * @example
  * // the result should produce the identity when multiplied with the input
- * inverse([[7,2,1],[0,3,-1],[-3,4,2]])
+ * matrixInverse([[7,2,1],[0,3,-1],[-3,4,2]])
  */
 function matrixInverse(A){
     const n = A.length;
-    let b = Array(n).fill().map(() => Array(n).fill(0))
+    let b = Array(n).fill().map(() => Array(n).fill(0));
     for(let i=0; i<n; i++){ b[i][i] = 1; }
     return LUPSolveMatrix(A, b);
 }
+
+/**
+ * Computes the determinant of `A`.
+ * @param {Number[][]} A An nxn matrix.
+ * 
+ * @example
+ * // returns something close to -85
+ * determinant([[7,-2,1],[0,-3,-1],[-3,-4,2]])
+ */
+function determinant(A){
+    try{
+        let det = LUPDecomposition(A)[1];
+        for(let i=0; i<A.length; i++){
+            det *= A[i][i];
+        }
+        return det;
+    } catch(e){ return 0; }
+}
+
+
